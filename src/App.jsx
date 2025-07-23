@@ -7,7 +7,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp, query } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
-// Make sure your Vercel environment variables are set (e.g., VITE_FIREBASE_API_KEY)
+// Ensure your .env file has the correct VITE_FIREBASE_... variables
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -468,51 +468,50 @@ export default function App() {
         if (isAuthReady && db && userId) {
             const trophiesCollectionPath = `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`;
             const q = query(collection(db, trophiesCollectionPath));
-            
-            // This listener handles all updates from Firestore
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
                 const trophiesData = [];
                 querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // ** THE FIX for Vercel vs. Local issue **
-                    // Only process documents where the server-side timestamp is present.
-                    // This prevents sorting errors from temporary null dates during optimistic updates.
-                    if (data.date) { 
-                        trophiesData.push({ id: doc.id, ...data });
-                    }
+                    trophiesData.push({ id: doc.id, ...doc.data() });
                 });
-
-                // Sort the validated data by date
-                trophiesData.sort((a, b) => a.date.seconds - b.date.seconds);
-                
-                // Set the master list of all valid trophies
+                // This sort ensures new items are always at the end
+                trophiesData.sort((a, b) => {
+                    if (!a.date) return 1;
+                    if (!b.date) return -1;
+                    return a.date.seconds - b.date.seconds;
+                });
                 setAllTrophies(trophiesData);
             }, (error) => {
                 console.error("Error fetching trophies:", error);
             });
-
             return () => unsubscribe();
         }
     }, [isAuthReady, db, userId]);
 
-    // Effect to visually update the displayed trophies
+    // Smarter effect to handle visual updates
     useEffect(() => {
-        const intervalId = setInterval(() => {
-            // This interval checks if more slides need to be shown and adds one at a time.
-            setDisplayedTrophies(currentDisplayed => {
-                if (currentDisplayed.length < allTrophies.length) {
-                    // Add the next slide from the master list
-                    return allTrophies.slice(0, currentDisplayed.length + 1);
-                } else {
-                    // All slides are shown, stop the interval
-                    clearInterval(intervalId);
-                    return currentDisplayed;
-                }
-            });
-        }, 100); // Animation speed for adding new slides
+        // Condition 1: Handle deletions, modifications, or initial load instantly
+        if (allTrophies.length !== displayedTrophies.length) {
+             // If a slide was deleted, the lengths won't match. Resetting is the cleanest way.
+            if (allTrophies.length < displayedTrophies.length) {
+                setDisplayedTrophies(allTrophies);
+                return;
+            }
 
-        return () => clearInterval(intervalId);
-    }, [allTrophies, displayedTrophies.length]); // Re-run if master list changes
+            // Condition 2: Animate the addition of new slides
+            const intervalId = setInterval(() => {
+                setDisplayedTrophies(currentDisplayed => {
+                    if (currentDisplayed.length < allTrophies.length) {
+                        return allTrophies.slice(0, currentDisplayed.length + 1);
+                    } else {
+                        clearInterval(intervalId);
+                        return currentDisplayed;
+                    }
+                });
+            }, 100); // Animation speed for adding new slides
+
+            return () => clearInterval(intervalId);
+        }
+    }, [allTrophies]);
 
 
     // --- CRUD Handlers ---
@@ -548,8 +547,6 @@ export default function App() {
         const docRef = doc(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`, trophyId);
         try {
             await deleteDoc(docRef);
-            // After deletion, filter the local state immediately for a responsive UI
-            setDisplayedTrophies(prev => prev.filter(t => t.id !== trophyId));
         } catch (error) {
             console.error("Error deleting trophy:", error);
         }
