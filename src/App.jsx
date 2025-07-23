@@ -54,57 +54,64 @@ const RandomBloodSample = ({ seed, className }) => {
     }, []);
 
     const spatterPath = useMemo(() => {
-        const mulberry32 = (a) => {
-            return () => {
-                let t = a += 0x6D2B79F5;
-                t = Math.imul(t ^ t >>> 15, t | 1);
-                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-                return ((t ^ t >>> 14) >>> 0) / 4294967296;
-            }
-        }
-        const numSeed = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const rand = mulberry32(numSeed);
+  const mulberry32 = (a) => {
+    return () => {
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
 
-        const isSmileyFace = rand() < (1 / 10000); // 1 in 10000 chance
+  // Better hash from seed string
+  const hashSeed = (str) => {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return hash >>> 0;
+  };
 
-        if (isSmileyFace) {
-            const faceBlob = `
-        M50,10 
-        C75,10 90,30 90,50 
-        C90,70 75,90 50,90 
-        C25,90 10,70 10,50 
-        C10,30 25,10 50,10 Z
-      `;
-            const eye1 = `M35,35 A5,5 0 1,0 45,35 A5,5 0 1,0 35,35 Z`;
-            const eye2 = `M65,35 A5,5 0 1,0 75,35 A5,5 0 1,0 65,35 Z`;
-            const mouth = `M35,60 Q50,70 65,60`;
-            return `${faceBlob} ${eye1} ${eye2} ${mouth}`;
+  const numSeed = hashSeed(seed); // Use the improved hash
+  const rand = mulberry32(numSeed);
 
-        } else {
-            const points = [];
-            const numPoints = 8 + Math.floor(rand() * 5);
-            const centerX = 50;
-            const centerY = 50;
-            const baseRadius = 35 + rand() * 10;
-            for (let i = 0; i < numPoints; i++) {
-                const angle = (i / numPoints) * 2 * Math.PI;
-                const radius = baseRadius + (rand() - 0.5) * 18;
-                const x = centerX + radius * Math.cos(angle);
-                const y = centerY + radius * Math.sin(angle);
-                points.push({ x, y });
-            }
-            let path = `M${points[0].x},${points[0].y}`;
-            for (let i = 0; i < numPoints; i++) {
-                const p1 = points[i];
-                const p2 = points[(i + 1) % numPoints];
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2;
-                path += ` Q${p1.x},${p1.y} ${midX},${midY}`;
-            }
-            path += ' Z';
-            return path;
-        }
-    }, [seed]);
+  const isSmileyFace = rand() < (1 / 10000); // Rare easter egg
+
+  if (isSmileyFace) {
+    const faceBlob = `M50,10 C75,10 90,30 90,50 C90,70 75,90 50,90 C25,90 10,70 10,50 C10,30 25,10 50,10 Z`;
+    const eye1 = `M35,35 A5,5 0 1,0 45,35 A5,5 0 1,0 35,35 Z`;
+    const eye2 = `M65,35 A5,5 0 1,0 75,35 A5,5 0 1,0 65,35 Z`;
+    const mouth = `M35,60 Q50,70 65,60`;
+    return `${faceBlob} ${eye1} ${eye2} ${mouth}`;
+  } else {
+    const points = [];
+    const numPoints = 8 + Math.floor(rand() * 5);
+    const centerX = 50;
+    const centerY = 50;
+    const baseRadius = 35 + rand() * 10;
+
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i / numPoints) * 2 * Math.PI;
+      const radius = baseRadius + (rand() - 0.5) * 18;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      points.push({ x, y });
+    }
+
+    let path = `M${points[0].x},${points[0].y}`;
+    for (let i = 0; i < numPoints; i++) {
+      const p1 = points[i];
+      const p2 = points[(i + 1) % numPoints];
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2;
+      path += ` Q${p1.x},${p1.y} ${midX},${midY}`;
+    }
+    path += ' Z';
+    return path;
+  }
+}, [seed]);
+
 
     return (
         <svg viewBox="0 0 100 100" className={`absolute w-16 h-16 ${className}`}>
@@ -123,59 +130,73 @@ const RandomBloodSample = ({ seed, className }) => {
 
 // --- Component: Trophy Slide ---
 const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
-    const hoverRef = useRef(null);
+  const hoverRef = useRef(null);
+  const animationFrame = useRef(null);
 
-    const handleMouseMove = (e) => {
-        if (!hoverRef.current) return;
-        const { left, top, width, height } = hoverRef.current.getBoundingClientRect();
-        const x = (e.clientX - left) / width;
-        const y = (e.clientY - top) / height;
-        const rotateY = (x - 0.5) * 16;
-        const rotateX = -(y - 0.5) * 16;
-        hoverRef.current.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        const glint = hoverRef.current.querySelector('.glint');
-        if (glint) {
-            const glintXOffset = (x - 0.5) * 50;
-            glint.style.transform = `translateX(calc(-50% + ${glintXOffset}px)) skewX(-12deg)`;
-        }
-    };
+  const handleMouseMove = (e) => {
+    if (!hoverRef.current) return;
+    cancelAnimationFrame(animationFrame.current);
 
-    const handleMouseLeave = () => {
-        if (!hoverRef.current) return;
-        hoverRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
-        const glint = hoverRef.current.querySelector('.glint');
-        if (glint) {
-            glint.style.transform = 'translateX(-50%) skewX(-12deg)';
-        }
-    };
+    animationFrame.current = requestAnimationFrame(() => {
+      const { left, top, width, height } = hoverRef.current.getBoundingClientRect();
+      const x = (e.clientX - left) / width;
+      const y = (e.clientY - top) / height;
 
-    return (
-        <div
-            onClick={() => onSelect(trophy)}
-            onMouseEnter={onHoverSound}
-            className="group w-full h-full cursor-pointer flex items-center"
-            style={{ perspective: '800px' }}
-        >
-            <div
-                className="relative w-full bg-cyan-100/15 backdrop-blur-sm border border-cyan-200/25 rounded-md flex items-center justify-center transition-all duration-300 ease-out h-2 group-hover:h-16 overflow-hidden shadow-md group-hover:shadow-2xl group-hover:-translate-y-1"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                ref={hoverRef}
-                style={{ transformStyle: 'preserve-3d' }}
-            >
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <RandomBloodSample seed={trophy.id} />
-                </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-200 w-full h-full relative z-10">
-                    <div className="absolute bottom-1 right-2 text-xs text-stone-800 font-mono">
-                        {trophy.date ? new Date(trophy.date.seconds * 1000).toLocaleDateString() : '...'}
-                    </div>
-                    <p className="absolute top-2 left-2 text-sm font-bold text-stone-800">{trophy.name}</p>
-                </div>
-                <div className="glint absolute top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12 z-20 opacity-0 group-hover:opacity-100" style={{ left: '70%', transform: 'translateX(-50%) skewX(-12deg)' }}></div>
-            </div>
+      const rotateY = (x - 0.5) * 16;
+      const rotateX = -(y - 0.5) * 16;
+      hoverRef.current.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+      const glint = hoverRef.current.querySelector('.glint');
+      if (glint) {
+        const glintXOffset = (x - 0.5) * 50;
+        glint.style.transform = `translateX(calc(-50% + ${glintXOffset}px)) skewX(-12deg)`;
+      }
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (!hoverRef.current) return;
+    hoverRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    const glint = hoverRef.current.querySelector('.glint');
+    if (glint) {
+      glint.style.transform = 'translateX(-50%) skewX(-12deg)';
+    }
+  };
+
+  return (
+    <div
+      onClick={() => onSelect(trophy)}
+      onMouseEnter={onHoverSound}
+      className="group w-full h-full cursor-pointer flex items-center"
+      style={{ perspective: '500px' }}
+    >
+      <div
+        className="relative w-full h-2 group-hover:h-16 overflow-hidden 
+               bg-white/10 backdrop-blur-sm border border-white/30 rounded-md
+               flex items-center justify-center transition-all duration-300 ease-out 
+               shadow-inner group-hover:shadow-xl group-hover:shadow-cyan-200/20 
+               group-hover:-translate-y-2 group-hover:scale-[1.03]
+"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        ref={hoverRef}
+        style={{ transformStyle: 'preserve-3d' }}
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <RandomBloodSample seed={trophy.id} />
         </div>
-    );
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-200 w-full h-full relative z-10">
+          <div className="absolute bottom-1 right-2 text-xs md:text-sm text-stone-800 font-mono">
+            {trophy.date ? new Date(trophy.date.seconds * 1000).toLocaleDateString() : '...'}
+          </div>
+          <p className="absolute top-2 left-2 text-sm md:text-base font-regular text-stone-600">
+            {trophy.name}
+          </p>
+        </div>
+        <div className="glint absolute top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12 z-20 opacity-0 group-hover:opacity-100" style={{ left: '70%', transform: 'translateX(-50%) skewX(-12deg)' }}></div>
+      </div>
+    </div>
+  );
 };
 
 
@@ -394,7 +415,7 @@ export default function App() {
         // Use the local path from the 'public' folder
         const backgroundAudio = new Audio("/background-music.mp3");
         backgroundAudio.loop = true;
-        backgroundAudio.volume = 0.2;
+        backgroundAudio.volume = 0.1;
 
         const playPromise = backgroundAudio.play();
         if (playPromise !== undefined) {
@@ -557,12 +578,19 @@ export default function App() {
                     <p className="text-gray-400 mt-2 font-mono">{currentQuote}</p>
                 </header>
 
-                <button onClick={() => setIsAddModalOpen(true)} className="mb-6 flex items-center gap-2 py-2 px-4 bg-red-900/80 hover:bg-red-800 text-white font-bold rounded-lg transition-colors duration-300 border border-red-700 shadow-lg">
-                    <PlusCircle size={20} />
-                    Add New Trophy
-                </button>
+                <button
+  onClick={() => setIsAddModalOpen(true)}
+  className="relative mb-6 flex items-center gap-2 py-2 px-4 bg-[#7b1e1e] hover:bg-[#a30000] text-white font-bold rounded-lg transition-all duration-300 border border-red-800 shadow-[inset_0_-4px_6px_rgba(0,0,0,0.6)] before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-full before:h-2 before:bg-gradient-to-r before:from-red-900 before:via-red-700 before:to-red-900 before:blur-sm before:opacity-70"
+>
+  <span className="relative z-10 flex items-center gap-2">
+    <PlusCircle size={20} className="text-white" />
+    Add New Trophy
+  </span>
+</button>
 
-                <main className="relative z-10 w-full max-w-sm p-2 bg-gradient-to-br from-[#5a3835] to-[#4a2c2a] rounded-lg shadow-2xl border-t-8 border-x-2 border-b-2 border-[#382220]">
+
+                <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033]
+">
                     <div
                         className="py-4 px-2 rounded-md shadow-inner h-[60vh] overflow-y-auto"
                         style={innerBoxStyle}
