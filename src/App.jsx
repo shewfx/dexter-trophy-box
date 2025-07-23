@@ -7,6 +7,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp, query } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
+// Make sure your Vercel environment variables are set (e.g., VITE_FIREBASE_API_KEY)
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -31,14 +32,14 @@ const dexterQuotes = [
     "I kill to stay human.", "Normal people are so hostile.",
     "I would give everything to feel nothing again.", "Life doesn’t have to be perfect.",
     "Never underestimate the capacity of others to let you down.",
-     "Sometimes it’s reassuring I’m not the only one pretending.",
+    "Sometimes it’s reassuring I’m not the only one pretending.",
     "There are no secrets, just hidden truths.", "Am I good doing bad… or bad doing good?",
     "Silence is my only witness.", "We create our own destiny.",
     "The ritual is intoxicating.", "Plastic sheeting solves so many problems.",
     "All you can do is play along.", "I can always see others' problems more clearly than my own.",
     "I don’t run. I make people run.",
     "We all want life to have meaning.",
-     "I fake all of it.",
+    "I fake all of it.",
     "The mask is slipping."
 ];
 
@@ -54,63 +55,62 @@ const RandomBloodSample = ({ seed, className }) => {
     }, []);
 
     const spatterPath = useMemo(() => {
-  const mulberry32 = (a) => {
-    return () => {
-      let t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  };
+        const mulberry32 = (a) => {
+            return () => {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        };
 
-  // Better hash from seed string
-  const hashSeed = (str) => {
-    let hash = 0x811c9dc5;
-    for (let i = 0; i < str.length; i++) {
-      hash ^= str.charCodeAt(i);
-      hash = Math.imul(hash, 0x01000193);
-    }
-    return hash >>> 0;
-  };
+        const hashSeed = (str) => {
+            let hash = 0x811c9dc5;
+            for (let i = 0; i < str.length; i++) {
+                hash ^= str.charCodeAt(i);
+                hash = Math.imul(hash, 0x01000193);
+            }
+            return hash >>> 0;
+        };
 
-  const numSeed = hashSeed(seed); // Use the improved hash
-  const rand = mulberry32(numSeed);
+        const numSeed = hashSeed(seed);
+        const rand = mulberry32(numSeed);
 
-  const isSmileyFace = rand() < (1 / 10000); // Rare easter egg
+        const isSmileyFace = rand() < (1 / 10000); // Rare easter egg
 
-  if (isSmileyFace) {
-    const faceBlob = `M50,10 C75,10 90,30 90,50 C90,70 75,90 50,90 C25,90 10,70 10,50 C10,30 25,10 50,10 Z`;
-    const eye1 = `M35,35 A5,5 0 1,0 45,35 A5,5 0 1,0 35,35 Z`;
-    const eye2 = `M65,35 A5,5 0 1,0 75,35 A5,5 0 1,0 65,35 Z`;
-    const mouth = `M35,60 Q50,70 65,60`;
-    return `${faceBlob} ${eye1} ${eye2} ${mouth}`;
-  } else {
-    const points = [];
-    const numPoints = 8 + Math.floor(rand() * 5);
-    const centerX = 50;
-    const centerY = 50;
-    const baseRadius = 35 + rand() * 10;
+        if (isSmileyFace) {
+            const faceBlob = `M50,10 C75,10 90,30 90,50 C90,70 75,90 50,90 C25,90 10,70 10,50 C10,30 25,10 50,10 Z`;
+            const eye1 = `M35,35 A5,5 0 1,0 45,35 A5,5 0 1,0 35,35 Z`;
+            const eye2 = `M65,35 A5,5 0 1,0 75,35 A5,5 0 1,0 65,35 Z`;
+            const mouth = `M35,60 Q50,70 65,60`;
+            return `${faceBlob} ${eye1} ${eye2} ${mouth}`;
+        } else {
+            const points = [];
+            const numPoints = 8 + Math.floor(rand() * 5);
+            const centerX = 50;
+            const centerY = 50;
+            const baseRadius = 35 + rand() * 10;
 
-    for (let i = 0; i < numPoints; i++) {
-      const angle = (i / numPoints) * 2 * Math.PI;
-      const radius = baseRadius + (rand() - 0.5) * 18;
-      const x = centerX + radius * Math.cos(angle);
-      const y = centerY + radius * Math.sin(angle);
-      points.push({ x, y });
-    }
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i / numPoints) * 2 * Math.PI;
+                const radius = baseRadius + (rand() - 0.5) * 18;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                points.push({ x, y });
+            }
 
-    let path = `M${points[0].x},${points[0].y}`;
-    for (let i = 0; i < numPoints; i++) {
-      const p1 = points[i];
-      const p2 = points[(i + 1) % numPoints];
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2;
-      path += ` Q${p1.x},${p1.y} ${midX},${midY}`;
-    }
-    path += ' Z';
-    return path;
-  }
-}, [seed]);
+            let path = `M${points[0].x},${points[0].y}`;
+            for (let i = 0; i < numPoints; i++) {
+                const p1 = points[i];
+                const p2 = points[(i + 1) % numPoints];
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+                path += ` Q${p1.x},${p1.y} ${midX},${midY}`;
+            }
+            path += ' Z';
+            return path;
+        }
+    }, [seed]);
 
 
     return (
@@ -130,80 +130,78 @@ const RandomBloodSample = ({ seed, className }) => {
 
 // --- Component: Trophy Slide ---
 const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
-  const hoverRef = useRef(null);
-  const animationFrame = useRef(null);
+    const hoverRef = useRef(null);
+    const animationFrame = useRef(null);
 
-  const handleMouseMove = (e) => {
-    if (!hoverRef.current) return;
-    cancelAnimationFrame(animationFrame.current);
+    const handleMouseMove = (e) => {
+        if (!hoverRef.current) return;
+        cancelAnimationFrame(animationFrame.current);
 
-    animationFrame.current = requestAnimationFrame(() => {
-      const { left, top, width, height } = hoverRef.current.getBoundingClientRect();
-      const x = (e.clientX - left) / width;
-      const y = (e.clientY - top) / height;
+        animationFrame.current = requestAnimationFrame(() => {
+            const { left, top, width, height } = hoverRef.current.getBoundingClientRect();
+            const x = (e.clientX - left) / width;
+            const y = (e.clientY - top) / height;
 
-      const rotateY = (x - 0.5) * 16;
-      const rotateX = -(y - 0.5) * 16;
-      hoverRef.current.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            const rotateY = (x - 0.5) * 16;
+            const rotateX = -(y - 0.5) * 16;
+            hoverRef.current.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
 
-      const glint = hoverRef.current.querySelector('.glint');
-      if (glint) {
-        const glintXOffset = (x - 0.5) * 50;
-        glint.style.transform = `translateX(calc(-50% + ${glintXOffset}px)) skewX(-12deg)`;
-      }
-    });
-  };
+            const glint = hoverRef.current.querySelector('.glint');
+            if (glint) {
+                const glintXOffset = (x - 0.5) * 50;
+                glint.style.transform = `translateX(calc(-50% + ${glintXOffset}px)) skewX(-12deg)`;
+            }
+        });
+    };
 
-  const handleMouseLeave = () => {
-    if (!hoverRef.current) return;
-    hoverRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
-    const glint = hoverRef.current.querySelector('.glint');
-    if (glint) {
-      glint.style.transform = 'translateX(-50%) skewX(-12deg)';
-    }
-  };
+    const handleMouseLeave = () => {
+        if (!hoverRef.current) return;
+        hoverRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        const glint = hoverRef.current.querySelector('.glint');
+        if (glint) {
+            glint.style.transform = 'translateX(-50%) skewX(-12deg)';
+        }
+    };
 
-  return (
-    <div
-      onClick={() => onSelect(trophy)}
-      onMouseEnter={onHoverSound}
-      className="group w-full h-full cursor-pointer flex items-center"
-      style={{ perspective: '500px' }}
-    >
-      <div
-        className="relative w-full h-2 group-hover:h-16 overflow-hidden 
-               bg-white/10 backdrop-blur-sm border border-white/30 rounded-md
-               flex items-center justify-center transition-all duration-300 ease-out 
-               shadow-inner group-hover:shadow-xl group-hover:shadow-cyan-200/20 
-               group-hover:-translate-y-2 group-hover:scale-[1.03]
-"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        ref={hoverRef}
-        style={{ transformStyle: 'preserve-3d' }}
-      >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <RandomBloodSample seed={trophy.id} />
+    return (
+        <div
+            onClick={() => onSelect(trophy)}
+            onMouseEnter={onHoverSound}
+            className="group w-full h-full cursor-pointer flex items-center"
+            style={{ perspective: '500px' }}
+        >
+            <div
+                className="relative w-full h-2 group-hover:h-16 overflow-hidden 
+                         bg-white/10 backdrop-blur-sm border border-white/30 rounded-md
+                         flex items-center justify-center transition-all duration-300 ease-out 
+                         shadow-inner group-hover:shadow-xl group-hover:shadow-cyan-200/20 
+                         group-hover:-translate-y-2 group-hover:scale-[1.03]"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                ref={hoverRef}
+                style={{ transformStyle: 'preserve-3d' }}
+            >
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <RandomBloodSample seed={trophy.id} />
+                </div>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-200 w-full h-full relative z-10">
+                    <div className="absolute bottom-1 right-2 text-xs md:text-sm text-stone-800 font-mono">
+                        {trophy.date ? new Date(trophy.date.seconds * 1000).toLocaleDateString() : '...'}
+                    </div>
+                    <p className="absolute top-2 left-2 text-sm md:text-base font-regular text-stone-600">
+                        {trophy.name}
+                    </p>
+                </div>
+                <div className="glint absolute top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12 z-20 opacity-0 group-hover:opacity-100" style={{ left: '70%', transform: 'translateX(-50%) skewX(-12deg)' }}></div>
+            </div>
         </div>
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-200 w-full h-full relative z-10">
-          <div className="absolute bottom-1 right-2 text-xs md:text-sm text-stone-800 font-mono">
-            {trophy.date ? new Date(trophy.date.seconds * 1000).toLocaleDateString() : '...'}
-          </div>
-          <p className="absolute top-2 left-2 text-sm md:text-base font-regular text-stone-600">
-            {trophy.name}
-          </p>
-        </div>
-        <div className="glint absolute top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent transform -skew-x-12 z-20 opacity-0 group-hover:opacity-100" style={{ left: '70%', transform: 'translateX(-50%) skewX(-12deg)' }}></div>
-      </div>
-    </div>
-  );
+    );
 };
 
 
 // --- Component for an Empty Slot ---
 const EmptySlot = () => (
     <div className="w-full h-full flex items-center pr-1">
-        {/* This creates the appearance of an indented groove */}
         <div className="w-full h-2 bg-[#d3c5ad] border-t border-[#f3e9d2] rounded-sm shadow-inner"></div>
     </div>
 );
@@ -249,8 +247,13 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
 
         try {
             const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            // IMPORTANT: Replace with your actual Gemini API key, or use a secure proxy
-            const apiKey = "YOUR_GEMINI_API_KEY"; // <<-- This needs to be filled in!
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Using environment variable for API Key
+            if (!apiKey) {
+                 setEditedTrophy(prev => ({ ...prev, notes: "Analysis failed: API key is not configured." }));
+                 setIsAnalyzing(false);
+                 setIsEditing(true);
+                 return;
+            }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
             const response = await fetch(apiUrl, {
@@ -327,7 +330,7 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
                                 <button onClick={handleCancel} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
                             </div>
                         ) : (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <button onClick={() => setIsEditing(true)} className="bg-blue-800/80 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-300 flex items-center"><Edit size={18} className="mr-2" /> Edit</button>
                                 <button onClick={handleAnalyze} disabled={isAnalyzing} className="bg-purple-800/80 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors duration-300 flex items-center disabled:bg-gray-500 disabled:cursor-wait">
                                     {isAnalyzing ? 'Analyzing...' : <><Sparkles size={18} className="mr-2" /> Generate Profile</>}
@@ -398,11 +401,10 @@ const AddTrophyModal = ({ isOpen, onClose, onAdd }) => {
 // --- Main App Component ---
 export default function App() {
     const [selectedTrophy, setSelectedTrophy] = useState(null);
-    const [trophies, setTrophies] = useState([]);
+    const [allTrophies, setAllTrophies] = useState([]);
+    const [displayedTrophies, setDisplayedTrophies] = useState([]);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [currentQuote, setCurrentQuote] = useState(dexterQuotes[0]);
-
-    // Firebase and Sound state
     const [db, setDb] = useState(null);
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
@@ -411,22 +413,16 @@ export default function App() {
 
     // One-time initialization
     useEffect(() => {
-        // --- UPDATED BACKGROUND MUSIC ---
-        // Use the local path from the 'public' folder
         const backgroundAudio = new Audio("/background-music.mp3");
         backgroundAudio.loop = true;
         backgroundAudio.volume = 0.1;
-
         const playPromise = backgroundAudio.play();
         if (playPromise !== undefined) {
             playPromise.catch(() => {
                 console.log("Autoplay was blocked. Waiting for user interaction.");
-                // Add a one-time event listener to play after the first click
                 document.body.addEventListener('click', () => backgroundAudio.play(), { once: true });
             });
         }
-        // --- END OF BACKGROUND MUSIC ---
-
         setCurrentQuote(dexterQuotes[Math.floor(Math.random() * dexterQuotes.length)]);
         const script = document.createElement('script');
         script.src = "https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js";
@@ -439,11 +435,9 @@ export default function App() {
             setSynth(synthInstance);
         };
         document.body.appendChild(script);
-
         const authInstance = getAuth(firebaseApp);
         const dbInstance = getFirestore(firebaseApp);
         setDb(dbInstance);
-
         const unsubscribeAuth = onAuthStateChanged(authInstance, async (user) => {
             if (user) {
                 setUserId(user.uid);
@@ -461,33 +455,38 @@ export default function App() {
             }
             setIsAuthReady(true);
         });
-
         return () => {
             unsubscribeAuth();
             document.body.removeChild(script);
-            // Cleanup for the background music
             backgroundAudio.pause();
             backgroundAudio.src = "";
         };
     }, []);
 
-    // Effect for fetching data from Firestore
+    // Effect for fetching and sorting data from Firestore
     useEffect(() => {
         if (isAuthReady && db && userId) {
             const trophiesCollectionPath = `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`;
             const q = query(collection(db, trophiesCollectionPath));
-
+            
+            // This listener handles all updates from Firestore
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
                 const trophiesData = [];
                 querySnapshot.forEach((doc) => {
-                    trophiesData.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    // ** THE FIX for Vercel vs. Local issue **
+                    // Only process documents where the server-side timestamp is present.
+                    // This prevents sorting errors from temporary null dates during optimistic updates.
+                    if (data.date) { 
+                        trophiesData.push({ id: doc.id, ...data });
+                    }
                 });
-                trophiesData.sort((a, b) => {
-                    if (!a.date) return 1;
-                    if (!b.date) return -1;
-                    return a.date.seconds - b.date.seconds;
-                });
-                setTrophies(trophiesData);
+
+                // Sort the validated data by date
+                trophiesData.sort((a, b) => a.date.seconds - b.date.seconds);
+                
+                // Set the master list of all valid trophies
+                setAllTrophies(trophiesData);
             }, (error) => {
                 console.error("Error fetching trophies:", error);
             });
@@ -495,6 +494,26 @@ export default function App() {
             return () => unsubscribe();
         }
     }, [isAuthReady, db, userId]);
+
+    // Effect to visually update the displayed trophies
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            // This interval checks if more slides need to be shown and adds one at a time.
+            setDisplayedTrophies(currentDisplayed => {
+                if (currentDisplayed.length < allTrophies.length) {
+                    // Add the next slide from the master list
+                    return allTrophies.slice(0, currentDisplayed.length + 1);
+                } else {
+                    // All slides are shown, stop the interval
+                    clearInterval(intervalId);
+                    return currentDisplayed;
+                }
+            });
+        }, 100); // Animation speed for adding new slides
+
+        return () => clearInterval(intervalId);
+    }, [allTrophies, displayedTrophies.length]); // Re-run if master list changes
+
 
     // --- CRUD Handlers ---
     const handleAddTrophy = async (name) => {
@@ -529,6 +548,8 @@ export default function App() {
         const docRef = doc(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`, trophyId);
         try {
             await deleteDoc(docRef);
+            // After deletion, filter the local state immediately for a responsive UI
+            setDisplayedTrophies(prev => prev.filter(t => t.id !== trophyId));
         } catch (error) {
             console.error("Error deleting trophy:", error);
         }
@@ -549,9 +570,8 @@ export default function App() {
 
     const handleSelectTrophy = (trophy) => setSelectedTrophy(trophy);
 
-    const displayedSlots = Math.ceil(Math.max(50, trophies.length + 1) / 50) * 50;
+    const displayedSlots = Math.ceil(Math.max(50, allTrophies.length + 1) / 50) * 50;
 
-    // Style for the inner wood texture
     const innerBoxStyle = {
         backgroundColor: '#eaddc7',
         backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 19px, rgba(0,0,0,0.04) 19px, rgba(0,0,0,0.04) 20px)',
@@ -579,18 +599,17 @@ export default function App() {
                 </header>
 
                 <button
-  onClick={() => setIsAddModalOpen(true)}
-  className="relative mb-6 flex items-center gap-2 py-2 px-4 bg-[#7b1e1e] hover:bg-[#a30000] text-white font-bold rounded-lg transition-all duration-300 border border-red-800 shadow-[inset_0_-4px_6px_rgba(0,0,0,0.6)] before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-full before:h-2 before:bg-gradient-to-r before:from-red-900 before:via-red-700 before:to-red-900 before:blur-sm before:opacity-70"
->
-  <span className="relative z-10 flex items-center gap-2">
-    <PlusCircle size={20} className="text-white" />
-    Add New Trophy
-  </span>
-</button>
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="relative mb-6 flex items-center gap-2 py-2 px-4 bg-[#7b1e1e] hover:bg-[#a30000] text-white font-bold rounded-lg transition-all duration-300 border border-red-800 shadow-[inset_0_-4px_6px_rgba(0,0,0,0.6)] before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-full before:h-2 before:bg-gradient-to-r before:from-red-900 before:via-red-700 before:to-red-900 before:blur-sm before:opacity-70"
+                >
+                    <span className="relative z-10 flex items-center gap-2">
+                        <PlusCircle size={20} className="text-white" />
+                        Add New Trophy
+                    </span>
+                </button>
 
 
-                <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033]
-">
+                <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033]">
                     <div
                         className="py-4 px-2 rounded-md shadow-inner h-[60vh] overflow-y-auto"
                         style={innerBoxStyle}
@@ -600,8 +619,8 @@ export default function App() {
                                 <div key={i} className="flex items-center h-10 space-x-2">
                                     <div className="w-8 text-center text-xs text-gray-600 font-mono">{i + 1}</div>
                                     <div className="flex-grow h-full">
-                                        {trophies[i] ?
-                                            <TrophySlide trophy={trophies[i]} onSelect={handleSelectTrophy} onHoverSound={playHoverSound} /> :
+                                        {displayedTrophies[i] ?
+                                            <TrophySlide trophy={displayedTrophies[i]} onSelect={handleSelectTrophy} onHoverSound={playHoverSound} /> :
                                             <EmptySlot />
                                         }
                                     </div>
@@ -625,18 +644,18 @@ export default function App() {
             />}
 
             <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap');
-        .font-handwritten { font-family: 'Cedarville Cursive', cursive; }
-        @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-        @keyframes blood-spread {
-          from { transform: scale(0.1); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        .animate-blood-spread {
-          animation: blood-spread 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-      `}</style>
+                @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap');
+                .font-handwritten { font-family: 'Cedarville Cursive', cursive; }
+                @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+                .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+                @keyframes blood-spread {
+                  from { transform: scale(0.1); opacity: 0; }
+                  to { transform: scale(1); opacity: 1; }
+                }
+                .animate-blood-spread {
+                  animation: blood-spread 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                }
+            `}</style>
         </div>
     );
 }
