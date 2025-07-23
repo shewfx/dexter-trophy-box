@@ -31,14 +31,14 @@ const dexterQuotes = [
     "I kill to stay human.", "Normal people are so hostile.",
     "I would give everything to feel nothing again.", "Life doesn’t have to be perfect.",
     "Never underestimate the capacity of others to let you down.",
-    "I nodded with genuine synthetic sympathy.", "Sometimes it’s reassuring I’m not the only one pretending.",
+     "Sometimes it’s reassuring I’m not the only one pretending.",
     "There are no secrets, just hidden truths.", "Am I good doing bad… or bad doing good?",
     "Silence is my only witness.", "We create our own destiny.",
     "The ritual is intoxicating.", "Plastic sheeting solves so many problems.",
     "All you can do is play along.", "I can always see others' problems more clearly than my own.",
-    "I don’t run. I make people run.", "Getting yelled at by a furious woman… semiformal occasion.",
-    "We all want life to have meaning.", "Commitment. Sharing. Driving people to the airport.",
-    "I enjoy good-looking idiots watching each other.", "I fake all of it.",
+    "I don’t run. I make people run.",
+    "We all want life to have meaning.",
+     "I fake all of it.",
     "The mask is slipping."
 ];
 
