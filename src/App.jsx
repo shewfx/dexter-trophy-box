@@ -10,14 +10,15 @@ import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, s
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
-  apiKey: "AIzaSyAQfCfRqdjYMUjcIZ6qv6avxi5JifC094E", // Your Firebase API Key
-  authDomain: "dexterbloodslides.firebaseapp.com",
-  projectId: "dexterbloodslides",
-  storageBucket: "dexterbloodslides.firebasestorage.app",
-  messagingSenderId: "9917678416",
-  appId: "1:9917678416:web:18c52db1393c5f94922255",
-  measurementId: "G-HNCD5C739B"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
 
 // Initialize Firebase App ONCE globally
 const firebaseApp = initializeApp(firebaseConfig);
