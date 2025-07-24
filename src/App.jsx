@@ -7,7 +7,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp, query } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
-// Ensure your .env file has the correct VITE_FIREBASE_... variables
+// Reverted to your original environment variable configuration.
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -122,7 +122,7 @@ const RandomBloodSample = ({ seed, className }) => {
                 transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }}>
                 <path d={spatterPath} fill="rgba(153, 27, 27, 0.7)" filter="url(#blur-filter)" />
-                <path d={spatterPath} fill="rgba(127, 29, 29, 1)" transform="scale(0.85)" transform-origin="50 50" />
+                <path d={spatterPath} fill="rgba(127, 29, 29, 1)" transform="scale(0.85)" style={{transformOrigin: '50% 50%'}} />
             </g>
         </svg>
     );
@@ -172,10 +172,10 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
         >
             <div
                 className="relative w-full h-2 group-hover:h-16 overflow-hidden 
-                         bg-white/10 backdrop-blur-sm border border-white/30 rounded-md
-                         flex items-center justify-center transition-all duration-300 ease-out 
-                         shadow-inner group-hover:shadow-xl group-hover:shadow-cyan-200/20 
-                         group-hover:-translate-y-2 group-hover:scale-[1.03]"
+                           bg-white/10 backdrop-blur-sm border border-white/30 rounded-md
+                           flex items-center justify-center transition-all duration-300 ease-out 
+                           shadow-inner group-hover:shadow-xl group-hover:shadow-cyan-200/20 
+                           group-hover:-translate-y-2 group-hover:scale-[1.03]"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
                 ref={hoverRef}
@@ -247,12 +247,13 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
 
         try {
             const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Using environment variable for API Key
+            // Reverted to your original API key handling
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
             if (!apiKey) {
-                 setEditedTrophy(prev => ({ ...prev, notes: "Analysis failed: API key is not configured." }));
-                 setIsAnalyzing(false);
-                 setIsEditing(true);
-                 return;
+                setEditedTrophy(prev => ({ ...prev, notes: "Analysis failed: API key is not configured." }));
+                setIsAnalyzing(false);
+                setIsEditing(true);
+                return;
             }
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
@@ -413,6 +414,7 @@ export default function App() {
 
     // One-time initialization
     useEffect(() => {
+        // Reverted to your original audio handling
         const backgroundAudio = new Audio("/background-music.mp3");
         backgroundAudio.loop = true;
         backgroundAudio.volume = 0.1;
@@ -435,6 +437,8 @@ export default function App() {
             setSynth(synthInstance);
         };
         document.body.appendChild(script);
+        
+        // Reverted to your original Firebase auth logic
         const authInstance = getAuth(firebaseApp);
         const dbInstance = getFirestore(firebaseApp);
         setDb(dbInstance);
@@ -463,55 +467,53 @@ export default function App() {
         };
     }, []);
 
-    // Effect for fetching and sorting data from Firestore
+    // Effect for fetching data from Firestore
     useEffect(() => {
         if (isAuthReady && db && userId) {
             const trophiesCollectionPath = `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`;
             const q = query(collection(db, trophiesCollectionPath));
+            
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
                 const trophiesData = [];
                 querySnapshot.forEach((doc) => {
-                    trophiesData.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    // We still need to check for the date to ensure the document is fully written
+                    if (data.date) { 
+                        trophiesData.push({ id: doc.id, ...data });
+                    }
                 });
-                // This sort ensures new items are always at the end
-                trophiesData.sort((a, b) => {
-                    if (!a.date) return 1;
-                    if (!b.date) return -1;
-                    return a.date.seconds - b.date.seconds;
-                });
+
+                // *** CHANGE: Removed sorting logic. ***
+                // Firestore's default ordering by document ID is roughly chronological.
+                // This will place the newest items at the end of the list automatically.
+                
                 setAllTrophies(trophiesData);
             }, (error) => {
                 console.error("Error fetching trophies:", error);
             });
+
             return () => unsubscribe();
         }
     }, [isAuthReady, db, userId]);
 
-    // Smarter effect to handle visual updates
+    // Effect to visually update the displayed trophies
     useEffect(() => {
-        // Condition 1: Handle deletions, modifications, or initial load instantly
-        if (allTrophies.length !== displayedTrophies.length) {
-             // If a slide was deleted, the lengths won't match. Resetting is the cleanest way.
-            if (allTrophies.length < displayedTrophies.length) {
-                setDisplayedTrophies(allTrophies);
-                return;
-            }
+        const intervalId = setInterval(() => {
+            // This interval checks if more slides need to be shown and adds one at a time.
+            setDisplayedTrophies(currentDisplayed => {
+                if (currentDisplayed.length < allTrophies.length) {
+                    // Add the next slide from the master list
+                    return allTrophies.slice(0, currentDisplayed.length + 1);
+                } else {
+                    // All slides are shown, stop the interval
+                    clearInterval(intervalId);
+                    return currentDisplayed;
+                }
+            });
+        }, 75); // Spawning slides slightly faster for a tighter cascade effect.
 
-            // Condition 2: Animate the addition of new slides
-            const intervalId = setInterval(() => {
-                setDisplayedTrophies(currentDisplayed => {
-                    if (currentDisplayed.length < allTrophies.length) {
-                        return allTrophies.slice(0, currentDisplayed.length + 1);
-                    } else {
-                        clearInterval(intervalId);
-                        return currentDisplayed;
-                    }
-                });
-            }, 100); // Animation speed for adding new slides
-
-            return () => clearInterval(intervalId);
-        }
-    }, [allTrophies]);
+        return () => clearInterval(intervalId);
+    }, [allTrophies, displayedTrophies.length]); // Re-run if master list changes
 
 
     // --- CRUD Handlers ---
@@ -547,6 +549,7 @@ export default function App() {
         const docRef = doc(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`, trophyId);
         try {
             await deleteDoc(docRef);
+            setDisplayedTrophies(prev => prev.filter(t => t.id !== trophyId));
         } catch (error) {
             console.error("Error deleting trophy:", error);
         }
