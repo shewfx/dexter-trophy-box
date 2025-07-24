@@ -172,9 +172,9 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
         >
             <div
                 className="relative w-full h-2 group-hover:h-16 overflow-hidden 
-                           bg-white/10 backdrop-blur-sm border border-white/30 rounded-md
+                           bg-white/10 backdrop-blur-sm border border-white/20 rounded-md
                            flex items-center justify-center transition-all duration-300 ease-out 
-                           shadow-inner group-hover:shadow-xl group-hover:shadow-cyan-200/20 
+                           shadow-inner group-hover:shadow-lg group-hover:shadow-black/30
                            group-hover:-translate-y-2 group-hover:scale-[1.03]"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -186,7 +186,7 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-200 w-full h-full relative z-10">
                     <div className="absolute bottom-1 right-2 text-xs md:text-sm text-stone-800 font-mono">
-                        {trophy.date ? new Date(trophy.date.seconds * 1000).toLocaleDateString() : '...'}
+                        {trophy.createdAt ? new Date(trophy.createdAt).toLocaleDateString() : '...'}
                     </div>
                     <p className="absolute top-2 left-2 text-sm md:text-base font-regular text-stone-600">
                         {trophy.name}
@@ -286,7 +286,7 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
         }
     };
 
-    const formattedDate = trophy.date ? new Date(trophy.date.seconds * 1000).toDateString() : 'No date';
+    const formattedDate = trophy.createdAt ? new Date(trophy.createdAt).toDateString() : 'No date';
 
     return (
         <>
@@ -477,19 +477,15 @@ export default function App() {
                 const trophiesData = [];
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    // This is the crucial part. When a new trophy is added, Firestore's
-                    // onSnapshot can fire once with the `date` field being null before the
-                    // server assigns the timestamp. This `if` statement filters out these
-                    // temporary states, preventing errors in the sorting logic below.
-                    if (data.date) { 
-                        trophiesData.push({ id: doc.id, ...data });
+                    // Vercel Fix: Only process documents that have a server-confirmed timestamp.
+                    // This prevents errors when onSnapshot fires before the serverTimestamp is set.
+                    if (data.serverTime) { 
+                        trophiesData.push({ id: doc.id, ...data, createdAt: data.serverTime.toDate() });
                     }
                 });
 
-                // Now, sort the validated data. This ensures we never try to sort
-                // with a null date, which would crash the app. This is the most
-                // likely fix for the issue on Vercel.
-                trophiesData.sort((a, b) => a.date.seconds - b.date.seconds);
+                // Sort the validated data by the reliable timestamp.
+                trophiesData.sort((a, b) => a.createdAt - b.createdAt);
                 
                 setAllTrophies(trophiesData);
             }, (error) => {
@@ -527,7 +523,7 @@ export default function App() {
         const newTrophy = {
             name: name,
             notes: "A new beginning. Add your notes here.",
-            date: serverTimestamp(),
+            serverTime: serverTimestamp(), // Use serverTimestamp for reliable ordering
         };
         try {
             const collectionRef = collection(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`);
@@ -541,7 +537,8 @@ export default function App() {
         if (!db || !userId) return;
         const docRef = doc(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`, updatedTrophy.id);
         try {
-            const { id, ...dataToSave } = updatedTrophy;
+            // Exclude client-side 'createdAt' from being written back to Firestore
+            const { id, createdAt, ...dataToSave } = updatedTrophy;
             await setDoc(docRef, dataToSave, { merge: true });
         } catch (error) {
             console.error("Error updating trophy:", error);
@@ -553,7 +550,7 @@ export default function App() {
         const docRef = doc(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`, trophyId);
         try {
             await deleteDoc(docRef);
-            setDisplayedTrophies(prev => prev.filter(t => t.id !== trophyId));
+            // The onSnapshot listener will handle the UI update automatically.
         } catch (error) {
             console.error("Error deleting trophy:", error);
         }
