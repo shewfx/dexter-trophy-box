@@ -174,7 +174,7 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
                 className="relative w-full h-2 group-hover:h-16 overflow-hidden 
                            bg-white/10 backdrop-blur-sm border border-white/20 rounded-md
                            flex items-center justify-center transition-all duration-300 ease-out 
-                           shadow-inner group-hover:shadow-lg group-hover:shadow-black/30
+                           shadow shadow-black/20 shadow-inner group-hover:shadow-lg group-hover:shadow-black/30
                            group-hover:-translate-y-2 group-hover:scale-[1.03]"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -185,10 +185,10 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
                     <RandomBloodSample seed={trophy.id} />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-200 w-full h-full relative z-10">
-                    <div className="absolute bottom-1 right-2 text-xs md:text-sm text-stone-800 font-mono">
+                    <div className="absolute bottom-1 right-2 text-xs md:text-sm text-stone-800 font-custom-trophy">
                         {trophy.createdAt ? new Date(trophy.createdAt).toLocaleDateString() : '...'}
                     </div>
-                    <p className="absolute top-2 left-2 text-sm md:text-base font-regular text-stone-600">
+                    <p className="absolute top-2 left-2 text-sm md:text-base font-regular text-stone-600 font-custom-trophy">
                         {trophy.name}
                     </p>
                 </div>
@@ -202,7 +202,7 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
 // --- Component for an Empty Slot ---
 const EmptySlot = () => (
     <div className="w-full h-full flex items-center pr-1">
-        <div className="w-full h-2 bg-[#d3c5ad] border-t border-[#f3e9d2] rounded-sm shadow-inner"></div>
+        <div className="w-full h-2 bg-black/20 rounded-sm shadow-inner shadow-black/50 border-t border-black/30"></div>
     </div>
 );
 
@@ -572,18 +572,20 @@ export default function App() {
     const handleSelectTrophy = (trophy) => setSelectedTrophy(trophy);
 
     const displayedSlots = Math.ceil(Math.max(50, allTrophies.length + 1) / 50) * 50;
-
-    const innerBoxStyle = {
-        backgroundColor: '#eaddc7',
-        backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 19px, rgba(0,0,0,0.04) 19px, rgba(0,0,0,0.04) 20px)',
-        backgroundSize: '100% 20px',
-    };
-
+    
     return (
-        <div className="min-h-screen font-sans text-white relative overflow-hidden bg-gradient-to-br from-[#6f4e37] to-[#4a2c2a]" onClick={!isAudioReady ? startAudioContext : undefined}>
-            <svg className="absolute w-0 h-0"><filter id="wood-texture"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.4" numOctaves="4" result="turbulence" /><feColorMatrix type="saturate" values="0.1" in="turbulence" result="desaturatedTurbulence" /><feDiffuseLighting in="desaturatedTurbulence" lightingColor="#8c6d52" surfaceScale="2"><feDistantLight azimuth="45" elevation="60" /></feDiffuseLighting></filter></svg>
-            <div className="absolute inset-0 opacity-20" style={{ filter: 'url(#wood-texture)' }}></div>
-            <div className="absolute inset-0 bg-black/30"></div>
+        <div className="min-h-screen font-sans text-white relative overflow-hidden bg-gray-800" onClick={!isAudioReady ? startAudioContext : undefined}>
+            <svg className="absolute w-0 h-0">
+                <filter id="metal-texture">
+                    <feTurbulence type='fractalNoise' baseFrequency='0.1 0.4' numOctaves='3' seed='2' />
+                    <feDiffuseLighting in='noise' lightingColor='#fff' surfaceScale='2'>
+                        <feDistantLight azimuth='45' elevation='60' />
+                    </feDiffuseLighting>
+                </filter>
+                 <filter id="wood-texture"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.4" numOctaves="4" result="turbulence" /><feColorMatrix type="saturate" values="0.1" in="turbulence" result="desaturatedTurbulence" /><feDiffuseLighting in="desaturatedTurbulence" lightingColor="#8c6d52" surfaceScale="2"><feDistantLight azimuth="45" elevation="60" /></feDiffuseLighting></filter>
+            </svg>
+            <div className="absolute inset-0 opacity-20" style={{ filter: 'url(#metal-texture)' }}></div>
+            <div className="absolute inset-0 bg-black/60"></div>
 
             {!isAudioReady && synth && (
                 <div className="absolute top-0 left-0 right-0 p-2 bg-black/50 text-center text-sm z-50 animate-fade-in">
@@ -591,31 +593,29 @@ export default function App() {
                 </div>
             )}
 
-            <div className="relative z-10 flex flex-col items-center justify-center min-h-screen">
+            <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
                 <header className="text-center mb-4 px-4">
                     <h1 className="text-6xl md:text-7xl text-gray-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] font-handwritten tracking-wide">
                         The Collection
                     </h1>
                     <p className="text-gray-400 mt-2 font-mono">{currentQuote}</p>
                 </header>
-
+                
                 <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="relative mb-6 flex items-center gap-2 py-2 px-4 bg-[#7b1e1e] hover:bg-[#a30000] text-white font-bold rounded-lg transition-all duration-300 border border-red-800 shadow-[inset_0_-4px_6px_rgba(0,0,0,0.6)] before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-full before:h-2 before:bg-gradient-to-r before:from-red-900 before:via-red-700 before:to-red-900 before:blur-sm before:opacity-70"
+                    className="relative mb-6 flex items-center gap-2 py-2 px-4 bg-[#7b1e1e] hover:bg-[#a30000] text-white font-bold rounded-lg transition-all duration-300 border border-red-800 shadow-[inset_0_-4px_6px_rgba(0,0,0,0.6)]"
                 >
-                    <span className="relative z-10 flex items-center gap-2">
-                        <PlusCircle size={20} className="text-white" />
-                        Add New Trophy
-                    </span>
+                    <PlusCircle size={20} className="text-white" />
+                    Add New Trophy
                 </button>
 
 
                 <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033]">
                     <div
-                        className="py-4 px-2 rounded-md shadow-inner h-[60vh] overflow-y-auto"
-                        style={innerBoxStyle}
+                        className="relative py-4 px-2 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-[60vh] overflow-y-auto bg-[#c2a385]"
                     >
-                        <div className="space-y-1">
+                        <div className="absolute inset-0 opacity-15" style={{ filter: 'url(#wood-texture)' }}></div>
+                        <div className="relative z-10 space-y-1">
                             {Array.from({ length: displayedSlots }).map((_, i) => (
                                 <div key={i} className="flex items-center h-10 space-x-2">
                                     <div className="w-8 text-center text-xs text-gray-600 font-mono">{i + 1}</div>
@@ -646,7 +646,21 @@ export default function App() {
 
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap');
+                
+                /* --- Custom Font Setup --- */
+                /* 1. Place your 'biro-script-plus.otf' file in the 'public/fonts' folder. */
+                @font-face {
+                    font-family: 'CustomTrophyFont';
+                    src: url('/fonts/biro-script-plus.otf') format('opentype');
+                }
+
                 .font-handwritten { font-family: 'Cedarville Cursive', cursive; }
+                .font-custom-trophy { 
+                    font-family: 'CustomTrophyFont', monospace; /* Fallback to monospace */
+                    font-variant-ligatures: common-ligatures;
+                    -webkit-font-feature-settings: "liga" on;
+                    font-feature-settings: "liga" on;
+                }
                 @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
                 .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
                 @keyframes blood-spread {
