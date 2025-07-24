@@ -477,15 +477,19 @@ export default function App() {
                 const trophiesData = [];
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    // We still need to check for the date to ensure the document is fully written
+                    // This is the crucial part. When a new trophy is added, Firestore's
+                    // onSnapshot can fire once with the `date` field being null before the
+                    // server assigns the timestamp. This `if` statement filters out these
+                    // temporary states, preventing errors in the sorting logic below.
                     if (data.date) { 
                         trophiesData.push({ id: doc.id, ...data });
                     }
                 });
 
-                // *** CHANGE: Removed sorting logic. ***
-                // Firestore's default ordering by document ID is roughly chronological.
-                // This will place the newest items at the end of the list automatically.
+                // Now, sort the validated data. This ensures we never try to sort
+                // with a null date, which would crash the app. This is the most
+                // likely fix for the issue on Vercel.
+                trophiesData.sort((a, b) => a.date.seconds - b.date.seconds);
                 
                 setAllTrophies(trophiesData);
             }, (error) => {
