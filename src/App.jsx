@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, TestTube2, Edit, Save, Trash2, PlusCircle, Sparkles } from 'lucide-react';
+import { X, TestTube2, Edit, Save, Trash2, PlusCircle } from 'lucide-react';
 
 // --- Firebase Imports ---
-import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp, query } from 'firebase/firestore';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp, query, updateDoc } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
 // Reverted to your original environment variable configuration.
@@ -211,7 +210,6 @@ const EmptySlot = () => (
 const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedTrophy, setEditedTrophy] = useState(trophy);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
@@ -229,6 +227,7 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
     const handleSave = () => {
         onSave(editedTrophy);
         setIsEditing(false);
+        onClose(); // Close modal on save for better UX and state synchronization
     };
 
     const handleCancel = () => {
@@ -240,51 +239,6 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
         onDelete(trophy.id);
         onClose();
     }
-
-    const handleAnalyze = async () => {
-        setIsAnalyzing(true);
-        const prompt = `From the perspective of a meticulous forensic analyst, provide a brief, dark, and metaphorical psychological profile of a subject whose defining characteristic is '${editedTrophy.name}'. Keep it under 50 words.`;
-
-        try {
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            // Reverted to your original API key handling
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            if (!apiKey) {
-                setEditedTrophy(prev => ({ ...prev, notes: "Analysis failed: API key is not configured." }));
-                setIsAnalyzing(false);
-                setIsEditing(true);
-                return;
-            }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`API call failed with status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                const text = result.candidates[0].content.parts[0].text;
-                setEditedTrophy(prev => ({ ...prev, notes: text }));
-            } else {
-                setEditedTrophy(prev => ({ ...prev, notes: "Analysis could not be completed. The subject remains an enigma." }));
-            }
-        } catch (error) {
-            console.error("Gemini API call failed:", error);
-            setEditedTrophy(prev => ({ ...prev, notes: "Error during analysis. Contamination of evidence suspected." }));
-        } finally {
-            setIsAnalyzing(false);
-            setIsEditing(true);
-        }
-    };
 
     const formattedDate = trophy.createdAt ? new Date(trophy.createdAt).toDateString() : 'No date';
 
@@ -333,9 +287,6 @@ const DetailView = ({ trophy, onClose, onSave, onDelete }) => {
                         ) : (
                             <div className="flex flex-wrap gap-2">
                                 <button onClick={() => setIsEditing(true)} className="bg-blue-800/80 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-300 flex items-center"><Edit size={18} className="mr-2" /> Edit</button>
-                                <button onClick={handleAnalyze} disabled={isAnalyzing} className="bg-purple-800/80 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors duration-300 flex items-center disabled:bg-gray-500 disabled:cursor-wait">
-                                    {isAnalyzing ? 'Analyzing...' : <><Sparkles size={18} className="mr-2" /> Generate Profile</>}
-                                </button>
                                 <button onClick={() => setShowDeleteConfirm(true)} className="bg-red-900 hover:bg-red-800 text-white font-bold py-2 px-4 rounded transition-colors duration-300 flex items-center"><Trash2 size={18} className="mr-2" /> Delete</button>
                             </div>
                         )}
@@ -537,9 +488,12 @@ export default function App() {
         if (!db || !userId) return;
         const docRef = doc(db, `artifacts/${APP_COLLECTION_ID}/users/${userId}/trophies`, updatedTrophy.id);
         try {
-            // Exclude client-side 'createdAt' from being written back to Firestore
-            const { id, createdAt, ...dataToSave } = updatedTrophy;
-            await setDoc(docRef, dataToSave, { merge: true });
+            // Create a new object with only the fields that should be updated.
+            const dataToSave = {
+                name: updatedTrophy.name,
+                notes: updatedTrophy.notes
+            };
+            await updateDoc(docRef, dataToSave);
         } catch (error) {
             console.error("Error updating trophy:", error);
         }
@@ -574,7 +528,7 @@ export default function App() {
     const displayedSlots = Math.ceil(Math.max(50, allTrophies.length + 1) / 50) * 50;
     
     return (
-        <div className="min-h-screen font-sans text-white relative overflow-hidden bg-gray-800" onClick={!isAudioReady ? startAudioContext : undefined}>
+        <div className="h-screen font-sans text-white relative overflow-hidden bg-gray-800" onClick={!isAudioReady ? startAudioContext : undefined}>
             <svg className="absolute w-0 h-0">
                 <filter id="metal-texture">
                     <feTurbulence type='fractalNoise' baseFrequency='0.1 0.4' numOctaves='3' seed='2' />
@@ -582,7 +536,12 @@ export default function App() {
                         <feDistantLight azimuth='45' elevation='60' />
                     </feDiffuseLighting>
                 </filter>
-                 <filter id="wood-texture"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.4" numOctaves="4" result="turbulence" /><feColorMatrix type="saturate" values="0.1" in="turbulence" result="desaturatedTurbulence" /><feDiffuseLighting in="desaturatedTurbulence" lightingColor="#8c6d52" surfaceScale="2"><feDistantLight azimuth="45" elevation="60" /></feDiffuseLighting></filter>
+                 <filter id="suede-texture">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="turbulence"/>
+                    <feDiffuseLighting in="turbulence" lightingColor="#d4c0a1" surfaceScale="1.5">
+                        <feDistantLight azimuth="45" elevation="60"/>
+                    </feDiffuseLighting>
+                </filter>
             </svg>
             <div className="absolute inset-0 opacity-20" style={{ filter: 'url(#metal-texture)' }}></div>
             <div className="absolute inset-0 bg-black/60"></div>
@@ -593,9 +552,9 @@ export default function App() {
                 </div>
             )}
 
-            <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
-                <header className="text-center mb-4 px-4">
-                    <h1 className="text-6xl md:text-7xl text-gray-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] font-handwritten tracking-wide">
+            <div className="relative z-10 flex flex-col items-center justify-center h-full p-4">
+                <header className="text-center mb-4 px-4 pt-4">
+                    <h1 className="text-4xl sm:text-5xl md:text-6xl text-gray-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] font-handwritten tracking-wide">
                         The Collection
                     </h1>
                     <p className="text-gray-400 mt-2 font-mono">{currentQuote}</p>
@@ -610,11 +569,11 @@ export default function App() {
                 </button>
 
 
-                <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033]">
+                <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033] flex-grow min-h-0">
                     <div
-                        className="relative py-4 px-2 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-[60vh] overflow-y-auto bg-[#c2a385]"
+                        className="relative py-4 px-2 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-full overflow-y-auto bg-[#c2a385]"
                     >
-                        <div className="absolute inset-0 opacity-15" style={{ filter: 'url(#wood-texture)' }}></div>
+                        <div className="absolute inset-0 opacity-20" style={{ filter: 'url(#suede-texture)' }}></div>
                         <div className="relative z-10 space-y-1">
                             {Array.from({ length: displayedSlots }).map((_, i) => (
                                 <div key={i} className="flex items-center h-10 space-x-2">
@@ -630,10 +589,12 @@ export default function App() {
                             ))}
                         </div>
                     </div>
-                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-16 h-8 bg-gradient-to-b from-yellow-500 to-yellow-600 border-2 border-yellow-700/80 rounded-sm z-10 flex items-center justify-center shadow-md p-0.5">
+                </main>
+                 <div className="w-full flex justify-center py-4">
+                    <div className="w-16 h-8 bg-gradient-to-b from-yellow-500 to-yellow-600 border-2 border-yellow-700/80 rounded-sm z-10 flex items-center justify-center shadow-md p-0.5">
                         <div className="w-8 h-1/2 bg-yellow-700/50 border border-yellow-800/50 rounded-sm"></div>
                     </div>
-                </main>
+                </div>
             </div>
 
             {isAddModalOpen && <AddTrophyModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddTrophy} />}
@@ -645,6 +606,11 @@ export default function App() {
             />}
 
             <style>{`
+                html, body, #root {
+                    height: 100%;
+                    margin: 0;
+                    overflow: hidden;
+                }
                 @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap');
                 
                 /* --- Custom Font Setup --- */
