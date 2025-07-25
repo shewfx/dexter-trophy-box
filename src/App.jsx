@@ -574,7 +574,7 @@ export default function App() {
                 </div>
             )}
 
-            <div className="relative z-10 flex flex-col items-center justify-center h-full p-4">
+            <div className="relative z-10 flex flex-col items-center justify-start h-full p-4">
                 <header className="text-center mb-4 px-4 pt-4">
                     <h1 className="text-4xl sm:text-5xl md:text-6xl text-gray-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] font-handwritten tracking-wide">
                         The Collection
