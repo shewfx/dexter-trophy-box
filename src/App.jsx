@@ -134,14 +134,17 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
     const hoverRef = useRef(null);
     const animationFrame = useRef(null);
 
-    const handleMouseMove = (e) => {
+    const handleInteractionMove = (e) => {
         if (!hoverRef.current) return;
         cancelAnimationFrame(animationFrame.current);
 
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
         animationFrame.current = requestAnimationFrame(() => {
             const { left, top, width, height } = hoverRef.current.getBoundingClientRect();
-            const x = (e.clientX - left) / width;
-            const y = (e.clientY - top) / height;
+            const x = (clientX - left) / width;
+            const y = (clientY - top) / height;
 
             const rotateY = (x - 0.5) * 16;
             const rotateX = -(y - 0.5) * 16;
@@ -155,7 +158,7 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
         });
     };
 
-    const handleMouseLeave = () => {
+    const handleInteractionEnd = () => {
         if (!hoverRef.current) return;
         hoverRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
         const glint = hoverRef.current.querySelector('.glint');
@@ -177,8 +180,10 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
                            flex items-center justify-center transition-all duration-300 ease-out 
                            shadow shadow-black/20 shadow-inner group-hover:shadow-lg group-hover:shadow-black/30
                            group-hover:-translate-y-2 group-hover:scale-[1.03]"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
+                onMouseMove={handleInteractionMove}
+                onMouseLeave={handleInteractionEnd}
+                onTouchMove={handleInteractionMove}
+                onTouchEnd={handleInteractionEnd}
                 ref={hoverRef}
                 style={{ transformStyle: 'preserve-3d' }}
             >
@@ -606,12 +611,10 @@ export default function App() {
                             ))}
                         </div>
                     </div>
-                </main>
-                 <div className="w-full flex justify-center py-4">
-                    <div className="w-16 h-8 bg-gradient-to-b from-yellow-500 to-yellow-600 border-2 border-yellow-700/80 rounded-sm z-10 flex items-center justify-center shadow-md p-0.5">
+                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-16 h-8 bg-gradient-to-b from-yellow-500 to-yellow-600 border-2 border-yellow-700/80 rounded-sm z-10 flex items-center justify-center shadow-md p-0.5">
                         <div className="w-8 h-1/2 bg-yellow-700/50 border border-yellow-800/50 rounded-sm"></div>
                     </div>
-                </div>
+                </main>
             </div>
 
             {isAddModalOpen && <AddTrophyModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddTrophy} />}
