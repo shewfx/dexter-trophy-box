@@ -160,12 +160,51 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
 
     const handleInteractionEnd = () => {
         if (!hoverRef.current) return;
+        cancelAnimationFrame(animationFrame.current);
         hoverRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)';
         const glint = hoverRef.current.querySelector('.glint');
         if (glint) {
             glint.style.transform = 'translateX(-50%) skewX(-12deg)';
         }
     };
+    
+    // This effect adds and removes event listeners to the window for robust touch handling
+    useEffect(() => {
+        const currentRef = hoverRef.current;
+
+        const handleStart = (e) => {
+            if (e.type === 'mousedown') {
+                 window.addEventListener('mousemove', handleInteractionMove);
+                 window.addEventListener('mouseup', handleEnd, { once: true });
+            } else { // touchstart
+                 window.addEventListener('touchmove', handleInteractionMove);
+                 window.addEventListener('touchend', handleEnd, { once: true });
+            }
+        };
+
+        const handleEnd = () => {
+            handleInteractionEnd();
+            window.removeEventListener('mousemove', handleInteractionMove);
+            window.removeEventListener('touchmove', handleInteractionMove);
+        };
+
+        if (currentRef) {
+            currentRef.addEventListener('mousedown', handleStart);
+            currentRef.addEventListener('touchstart', handleStart, { passive: true });
+        }
+
+        return () => {
+            if (currentRef) {
+                currentRef.removeEventListener('mousedown', handleStart);
+                currentRef.removeEventListener('touchstart', handleStart);
+            }
+            window.removeEventListener('mousemove', handleInteractionMove);
+            window.removeEventListener('mouseup', handleEnd);
+            window.removeEventListener('touchmove', handleInteractionMove);
+            window.removeEventListener('touchend', handleEnd);
+        };
+    }, []); // Empty dependency array ensures this runs only once
+
 
     return (
         <div
@@ -176,7 +215,7 @@ const TrophySlide = ({ trophy, onSelect, onHoverSound }) => {
         >
             <div
                 className="relative w-full h-2 group-hover:h-16 overflow-hidden 
-                           bg-white/10 backdrop-blur-sm border border-white/20 rounded-md
+                           bg-white/10 border border-white/20 rounded-md
                            flex items-center justify-center transition-all duration-300 ease-out 
                            shadow shadow-black/20 shadow-inner group-hover:shadow-lg group-hover:shadow-black/30
                            group-hover:-translate-y-2 group-hover:scale-[1.03]"
@@ -593,9 +632,8 @@ export default function App() {
 
                 <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033] flex-grow min-h-0">
                     <div
-                        className="relative py-4 px-2 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-full overflow-y-auto bg-[#c2a385]"
+                        className="relative py-4 px-2 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-full overflow-y-auto bg-[#d1c5b0] bg-[radial-gradient(#0001_1px,transparent_1px)] [background-size:4px_4px]"
                     >
-                        <div className="absolute inset-0 opacity-20" style={{ filter: 'url(#suede-texture)' }}></div>
                         <div className="relative z-10 space-y-1">
                             {Array.from({ length: displayedSlots }).map((_, i) => (
                                 <div key={i} className="flex items-center h-10 space-x-2">
