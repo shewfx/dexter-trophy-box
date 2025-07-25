@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, TestTube2, Edit, Save, Trash2, PlusCircle } from 'lucide-react';
 
 // --- Firebase Imports ---
+import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp, query, updateDoc } from 'firebase/firestore';
 
