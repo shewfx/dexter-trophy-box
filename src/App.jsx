@@ -20,7 +20,8 @@ const firebaseConfig = {
 
 
 // Initialize Firebase App ONCE globally
-const firebaseApp = initializeApp(firebaseConfig);
+const isFirebaseConfigured = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId;
+const firebaseApp = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 const APP_COLLECTION_ID = firebaseConfig.projectId;
 
 // --- Dexter Quotes ---
@@ -364,6 +365,21 @@ export default function App() {
     const [synth, setSynth] = useState(null);
     const [isAudioReady, setIsAudioReady] = useState(false);
 
+    // Vercel deployment check: Ensure all required environment variables are present.
+    if (!isFirebaseConfigured) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 text-center">
+                <h1 className="text-3xl text-red-500 font-bold mb-4">Configuration Error</h1>
+                <p className="max-w-md">
+                    The application is not configured correctly. This usually happens when environment variables are missing in the deployment environment (like Vercel).
+                </p>
+                <p className="mt-4 max-w-md">
+                    Please ensure all <strong>VITE_FIREBASE_...</strong> variables from your local <strong>.env</strong> file are added to your Vercel project's settings under "Environment Variables" and then re-deploy the application.
+                </p>
+            </div>
+        );
+    }
+
     // One-time initialization
     useEffect(() => {
         // Reverted to your original audio handling
@@ -612,10 +628,13 @@ export default function App() {
                     margin: 0;
                     overflow: hidden;
                 }
-                @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&display=swap');
                 
                 /* --- Custom Font Setup --- */
-                /* 1. Place your 'biro-script-plus.otf' file in the 'public/fonts' folder. */
+                @font-face {
+                    font-family: 'Cedarville Cursive';
+                    src: url('/fonts/CedarvilleCursive-Regular.ttf') format('truetype');
+                }
+
                 @font-face {
                     font-family: 'CustomTrophyFont';
                     src: url('/fonts/biro-script-plus.otf') format('opentype');
