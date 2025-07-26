@@ -630,14 +630,14 @@ export default function App() {
                 </button>
 
 
-                <main className="relative z-10 w-full max-w-sm p-3 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[10px] border-x-[3px] border-b-[4px] border-[#2f1a19] ring-1 ring-[#00000033] flex-grow min-h-0">
+                <main className="relative z-10 w-full max-w-sm p-2 bg-gradient-to-br from-[#5a3835] to-[#3b1f1e] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.6)] border-t-[15px] border-x-[20px] border-b-[9px] border-[#2f1a19] ring-1 ring-[#00000033] flex-grow min-h-0">
                     <div
-                        className="relative py-4 px-2 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-full overflow-y-auto bg-[#d1c5b0] bg-[radial-gradient(#0001_1px,transparent_1px)] [background-size:4px_4px]"
+                        className="relative py-4 px-0 rounded-md shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)] h-full overflow-y-auto bg-[#d1c5b0] bg-[radial-gradient(#0001_1px,transparent_1px)] [background-size:px_4px]"
                     >
                         <div className="relative z-10 space-y-1">
                             {Array.from({ length: displayedSlots }).map((_, i) => (
                                 <div key={i} className="flex items-center h-10 space-x-2">
-                                    <div className="w-8 text-center text-xs text-gray-600 font-mono">{i + 1}</div>
+                                    <div className="w-9 text-center text-xs text-gray-600 font-mono">{i + 1}</div>
                                     <div className="flex-grow h-full">
                                         {displayedTrophies[i] ?
                                             <TrophySlide trophy={displayedTrophies[i]} onSelect={handleSelectTrophy} onHoverSound={playHoverSound} /> :
